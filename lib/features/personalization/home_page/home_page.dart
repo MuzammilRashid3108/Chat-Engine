@@ -15,7 +15,6 @@ class HomePage extends StatelessWidget {
       backgroundColor: bgColor,
       appBar: AppBar(
         backgroundColor: appBarColor,
-        elevation: 0.8,
         titleSpacing: 0,
         title: const Padding(
           padding: EdgeInsets.only(left: 18.0),
@@ -42,202 +41,195 @@ class HomePage extends StatelessWidget {
           const SizedBox(width: 8),
         ],
       ),
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
+      body: CustomScrollView(
+        slivers: [
           // Search Bar
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 20, 16, 0),
-            child: SizedBox(
-              height: 50,
-              child: TextField(
-                decoration: InputDecoration(
-                  filled: true,
-                  fillColor: Colors.white.withOpacity(0.06),
-                  prefixIcon: const Icon(Icons.search, color: Colors.white38),
-                  hintText: 'Search',
-                  hintStyle: const TextStyle(
-                    color: Colors.white38,
-                    fontSize: 16,
-                    fontFamily: 'Open Sans',
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
+              child: SizedBox(
+                height: 45,
+                child: TextField(
+                  decoration: InputDecoration(
+                    filled: true,
+                    fillColor: Colors.white.withOpacity(0.06),
+                    prefixIcon: const Icon(Icons.search, color: Colors.white38),
+                    hintText: 'Search',
+                    hintStyle: const TextStyle(
+                      color: Colors.white38,
+                      fontSize: 16,
+                      fontFamily: 'Open Sans',
+                    ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(24),
+                    ),
                   ),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(24),
-                    borderSide: BorderSide.none,
-                  ),
+                  style: const TextStyle(color: Colors.white),
+                  cursorColor: Colors.white38,
                 ),
-                style: const TextStyle(color: Colors.white),
-                cursorColor: Colors.white38,
               ),
             ),
           ),
 
           // Stories
-          Padding(
-            padding: const EdgeInsets.only(top: 20, left: 12),
-            child: SizedBox(
-              height: 95,
-              child: ListView.separated(
-                scrollDirection: Axis.horizontal,
-                itemCount: 8,
-                separatorBuilder: (_, __) => const SizedBox(width: 12),
-                itemBuilder: (context, i) => Column(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(2.2), // Outer gradient border width
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        gradient: const LinearGradient(
-                          colors: [
-                            Color(0xFFD62976), // Pink
-                            Color(0xFFEEA863), // Orange/Yellow
-                            Color(0xFF9B2282), // Purple
-                          ],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                      ),
-                      child: Container(
-                        padding: const EdgeInsets.all(2.6), // Inner white ring
-                        decoration: const BoxDecoration(
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.only(top: 25, left: 12),
+              child: SizedBox(
+                height: 95,
+                child: ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: 8,
+                  separatorBuilder: (_, __) => const SizedBox(width: 12),
+                  itemBuilder: (context, i) => Column(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(2),
+                        decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          color: Colors.black,
-                        ),
-                        child: CircleAvatar(
-                          radius: 30, // Profile image
-                          backgroundImage:
-                          const AssetImage('assets/images/profile.jpeg'),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      i == 0 ? 'You' : 'User $i',
-                      style: const TextStyle(
-                        color: Colors.white70,
-                        fontSize: 12,
-                        fontFamily: 'Open Sans',
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-
-
-          // Chat List
-          const SizedBox(height: 12),
-          Expanded(
-            child: ListView.separated(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-              itemCount: 10,
-              separatorBuilder: (_, __) => const SizedBox(height: 8),
-              itemBuilder: (context, i) => Container(
-                decoration: BoxDecoration(
-                  color: const Color(0xFF1A1D25),
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.15),
-                      blurRadius: 6,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: ListTile(
-                  leading: Stack(
-                    children: [
-                      const CircleAvatar(
-                        radius: 28,
-                        backgroundImage:
-                        AssetImage('assets/images/profile.jpeg'),
-                      ),
-                      if (i % 2 == 0)
-                        Positioned(
-                          bottom: 2,
-                          right: 2,
-                          child: Container(
-                            width: 14,
-                            height: 14,
-                            decoration: BoxDecoration(
-                              color: onlineDot,
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                  color: const Color(0xFF1A1D25), width: 2),
-                            ),
+                          gradient: const LinearGradient(
+                            colors: [
+                              Color(0xFFD62976),
+                              Color(0xFFEEA863),
+                              Color(0xFF9B2282),
+                            ],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
                           ),
                         ),
-                    ],
-                  ),
-                  title: Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          'Contact ${i + 1}',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w600,
-                            fontSize: 16,
-                            fontFamily: 'Open Sans',
+                        child: Container(
+                          padding: const EdgeInsets.all(5),
+                          decoration: const BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: Colors.black,
                           ),
-                          overflow: TextOverflow.ellipsis,
+                          child: const CircleAvatar(
+                            radius: 26,
+                            backgroundImage: AssetImage('assets/images/profile.jpeg'),
+                          ),
                         ),
                       ),
+                      const SizedBox(height: 8),
                       Text(
-                        '12:${i}0',
+                        i == 0 ? 'You' : 'User $i',
                         style: const TextStyle(
-                          color: Colors.white54,
-                          fontSize: 13,
+                          color: Colors.white70,
+                          fontSize: 12,
                           fontFamily: 'Open Sans',
                         ),
                       ),
                     ],
                   ),
-                  subtitle: Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          'Last message preview goes here...',
-                          style: const TextStyle(
-                            color: Colors.white60,
-                            fontSize: 14,
-                            fontFamily: 'Open Sans',
-                          ),
-                          overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ),
+          ),
+
+          // Chat List
+          SliverList(
+            delegate: SliverChildBuilderDelegate(
+              childCount: 10,
+                  (context, i) => Column(
+                children: [
+                  if (i > 0)
+                    const Divider(
+                      color: Color(0xFF2A2D35),
+                      thickness: 0.6,
+                      height: 1,
+                      indent: 70,
+                      endIndent: 16,
+                    ),
+                  ListTile(
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+                    horizontalTitleGap: 12,
+                    leading: Stack(
+                      children: [
+                        const CircleAvatar(
+                          radius: 26,
+                          backgroundImage: AssetImage('assets/images/profile.jpeg'),
                         ),
-                      ),
-                      if (i % 3 == 0)
-                        Container(
-                          margin: const EdgeInsets.only(left: 6),
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 3),
-                          decoration: BoxDecoration(
-                            color: unreadBg,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: const Text(
-                            '1',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold,
-                              fontFamily: 'Open Sans',
+                        if (i % 2 == 0)
+                          Positioned(
+                            bottom: 2,
+                            right: 2,
+                            child: Container(
+                              width: 13,
+                              height: 13,
+                              decoration: BoxDecoration(
+                                color: onlineDot,
+                                shape: BoxShape.circle,
+                                border: Border.all(color: Color(0xFF1A1D25), width: 1),
+                              ),
                             ),
                           ),
+                      ],
+                    ),
+                    title: Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            'Contact ${i + 1}',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 16,
+                              fontFamily: 'Open Sans',
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
                         ),
-                    ],
+                        Text(
+                          '12:${i}0',
+                          style: const TextStyle(
+                            color: Colors.white54,
+                            fontSize: 13,
+                            fontFamily: 'Open Sans',
+                          ),
+                        ),
+                      ],
+                    ),
+                    subtitle: Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            'Last message preview goes here...',
+                            style: const TextStyle(
+                              color: Colors.white60,
+                              fontSize: 14,
+                              fontFamily: 'Open Sans',
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        if (i % 3 == 0)
+                          Container(
+                            margin: const EdgeInsets.only(left: 6),
+                            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: unreadBg,
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: const Text(
+                              '1',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                                fontFamily: 'Open Sans',
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                    onTap: () {},
                   ),
-                  onTap: () {},
-                  contentPadding:
-                  const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                  horizontalTitleGap: 12,
-                ),
+                ],
               ),
             ),
           ),
         ],
       ),
+
       floatingActionButton: FloatingActionButton(
         backgroundColor: accentBlue,
         onPressed: () {},
