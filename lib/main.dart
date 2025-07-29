@@ -26,7 +26,7 @@ class ChatEngine extends StatelessWidget {
       themeMode: ThemeMode.system,
       theme: AppTheme.darkTheme,
       darkTheme: AppTheme.darkTheme,
-      home: currentUser != null ? const HomePage() :  WelcomePage(),
+      home: currentUser != null ?  HomePage() :  WelcomePage(),
     );
   }
 }

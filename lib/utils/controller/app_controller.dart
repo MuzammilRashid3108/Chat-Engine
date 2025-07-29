@@ -5,6 +5,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
+import '../../features/personalization/chat_page/chat_page.dart';
+
 class AppController extends GetxController {
   final googleSignIn = GoogleSignIn();
 
@@ -61,5 +63,9 @@ class AppController extends GetxController {
 
   void goToSigunUpPage() {
     Get.to(SignupPage());
+  }
+
+  void goTochatPage (){
+    Get.to(ChatPage());
   }
 }

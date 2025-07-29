@@ -1,7 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import 'package:get/get_core/src/get_main.dart';
+
+import '../../../utils/controller/app_controller.dart';
 
 class HomePage extends StatelessWidget {
-  const HomePage({super.key});
+  final appController = Get.put(AppController());
+
+   HomePage({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -140,7 +146,7 @@ class HomePage extends StatelessWidget {
                       endIndent: 16,
                     ),
                   ListTile(
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 5),
                     horizontalTitleGap: 12,
                     leading: Stack(
                       children: [
@@ -192,7 +198,7 @@ class HomePage extends StatelessWidget {
                       children: [
                         Expanded(
                           child: Text(
-                            'Last message preview goes here...',
+                            'Active 2h ago',
                             style: const TextStyle(
                               color: Colors.white60,
                               fontSize: 14,
@@ -203,7 +209,9 @@ class HomePage extends StatelessWidget {
                         ),
                         if (i % 3 == 0)
                           Container(
-                            margin: const EdgeInsets.only(left: 6),
+                            height: 10,
+                            width: 10,
+                            margin: const EdgeInsets.only(left: 10),
                             padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
                             decoration: BoxDecoration(
                               color: unreadBg,
@@ -221,7 +229,9 @@ class HomePage extends StatelessWidget {
                           ),
                       ],
                     ),
-                    onTap: () {},
+                    onTap: () {
+                      appController.goTochatPage();
+                    },
                   ),
                 ],
               ),
