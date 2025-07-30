@@ -40,6 +40,15 @@ class AppController extends GetxController {
     }
 
     await saveUserInfo();
+
+
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      await FirebaseFirestore.instance.collection('users').doc(user.uid).update({
+        'lastSeen': FieldValue.serverTimestamp(),
+      });
+    }
+
     Get.offAll(HomePage());
   }
 
@@ -85,6 +94,7 @@ class AppController extends GetxController {
         'email': user.email,
         'photoUrl': user.photoURL,
         'isOnline': true,
+        'lastSeen': FieldValue.serverTimestamp(),
       });
     }
   }

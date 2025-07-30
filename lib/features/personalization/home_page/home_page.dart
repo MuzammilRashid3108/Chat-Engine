@@ -11,6 +11,21 @@ class HomePage extends StatelessWidget {
 
    HomePage({super.key});
 
+  String _formatLastSeen(Timestamp? timestamp) {
+    if (timestamp == null) return 'Last seen: unknown';
+
+    final DateTime lastSeen = timestamp.toDate();
+    final now = DateTime.now();
+    final difference = now.difference(lastSeen);
+
+    if (difference.inMinutes < 1) return 'Last seen just now';
+    if (difference.inMinutes < 60) return 'Last seen ${difference.inMinutes} min ago';
+    if (difference.inHours < 24) return 'Last seen ${difference.inHours} hr ago';
+    if (difference.inDays == 1) return 'Last seen yesterday';
+    return 'Last seen on ${lastSeen.day}/${lastSeen.month}/${lastSeen.year}';
+  }
+
+
   @override
   Widget build(BuildContext context) {
     const bgColor = Color(0xFF10131A);
@@ -289,8 +304,9 @@ class HomePage extends StatelessWidget {
                         ],
                       ),
                       subtitle: Text(
-                        user['email'] ?? '',
-                        style: const TextStyle(color: Colors.white60, fontSize: 14),
+                        _formatLastSeen(user['lastSeen']),
+
+                        style: const TextStyle(color: Colors.white60, fontSize: 12),
                       ),
                       onTap: () {
                         appController.goTochatPage(user['uid']);
