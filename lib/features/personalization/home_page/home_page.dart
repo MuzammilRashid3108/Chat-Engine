@@ -38,7 +38,9 @@ class HomePage extends StatelessWidget {
         actions: [
           IconButton(
             icon: const Icon(Icons.camera_alt_outlined, color: Colors.white70),
-            onPressed: () {},
+            onPressed: () {
+              appController.signOutUser();
+            },
           ),
           IconButton(
             icon: const Icon(Icons.more_vert, color: Colors.white70),
@@ -230,7 +232,7 @@ class HomePage extends StatelessWidget {
                       ],
                     ),
                     onTap: () {
-                      appController.goTochatPage();
+                      appController.goTochatPage("MfaYW3IVF3SwowiCePv9CVz4JSk2");
                     },
                   ),
                 ],

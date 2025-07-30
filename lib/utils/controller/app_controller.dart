@@ -1,6 +1,8 @@
 import 'package:chat_engine/features/authentication/login/login_page.dart';
 import 'package:chat_engine/features/authentication/signup_page/signup_page.dart';
+import 'package:chat_engine/features/authentication/welcome_page/welcome_page.dart';
 import 'package:chat_engine/features/personalization/home_page/home_page.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 import 'package:google_sign_in/google_sign_in.dart';
@@ -36,7 +38,9 @@ class AppController extends GetxController {
     if (firebaseUser != null) {
       String? photoURL = firebaseUser.photoURL;
       print('User Photo URL: $photoURL');
-    }
+
+    }      await saveUserInfo();
+
 
     // Step 4: Navigate to home screen
     Get.offAll(HomePage());
@@ -45,17 +49,77 @@ class AppController extends GetxController {
   Future<void> signOutUser() async {
     try {
       await FirebaseAuth.instance.signOut();
-      await googleSignIn.disconnect();
-      await googleSignIn.signOut();
-      print('User signed out');
+
+      if (await googleSignIn.isSignedIn()) {
+        await googleSignIn.disconnect(); // Disconnect and reset Google session
+        await googleSignIn.signOut();    // Sign out from Google
+      }
+
+      print('✅ User signed out successfully');
+      Get.offAll(() => WelcomePage());
     } catch (e) {
-      print('Error signing out: $e');
+      print('❌ Error signing out: $e');
     }
   }
+
 
   String? getUserPhotoUrl() {
     return FirebaseAuth.instance.currentUser?.photoURL;
   }
+
+
+  Future<void> saveUserInfo() async {
+    final user = FirebaseAuth.instance.currentUser;
+    final userDoc = FirebaseFirestore.instance.collection('users').doc(user!.uid);
+
+    final snapshot = await userDoc.get();
+    if (!snapshot.exists) {
+      await userDoc.set({
+        'uid': user.uid,
+        'name': user.displayName,
+        'email': user.email,
+        'photoUrl': user.photoURL,
+        'isOnline': true,
+      });
+    }
+  }
+
+
+  // Chat Logic
+
+  Future<void> sendMessage({
+    required String receiverId,
+    required String messageText,
+  }) async {
+    final senderId = FirebaseAuth.instance.currentUser!.uid;
+    final chatId = getChatId(senderId, receiverId);
+
+    final message = {
+      'senderId': senderId,
+      'receiverId': receiverId,
+      'text': messageText,
+      'timestamp': FieldValue.serverTimestamp(),
+      'type': 'text',
+    };
+
+    await FirebaseFirestore.instance
+        .collection('chats')
+        .doc(chatId)
+        .collection('messages')
+        .add(message);
+  }
+
+  // Chat ID Generator
+  String getChatId(String user1, String user2) {
+    return user1.hashCode <= user2.hashCode
+        ? '$user1\_$user2'
+        : '$user2\_$user1';
+  }
+
+
+
+  //Nvigtion
+
 
   void goToLoginPage() {
     Get.to(LoginPage());
@@ -65,7 +129,8 @@ class AppController extends GetxController {
     Get.to(SignupPage());
   }
 
-  void goTochatPage (){
-    Get.to(ChatPage());
+  void goTochatPage(String receiverId) {
+    Get.to(() => ChatPage(receiverId: receiverId));
   }
+
 }
