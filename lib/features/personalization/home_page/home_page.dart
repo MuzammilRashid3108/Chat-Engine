@@ -11,18 +11,51 @@ class HomePage extends StatelessWidget {
 
   HomePage({super.key});
 
-  Future<String> _getLastMessage(String receiverId) async {
+  Future<Map<String, dynamic>> _getLastMessage(String receiverId) async {
     final senderId = FirebaseAuth.instance.currentUser?.uid;
-    if (senderId == null) return '';
-    final chatId = appController.getChatId(senderId, receiverId);
+    if (senderId == null) return {'text': '', 'isRead': true};
 
-    final chatDoc =
-    await FirebaseFirestore.instance.collection('chats').doc(chatId).get();
+    final chatId = appController.getChatId(senderId, receiverId);
+    final chatDoc = await FirebaseFirestore.instance.collection('chats').doc(chatId).get();
+
     if (chatDoc.exists && chatDoc.data() != null) {
-      return chatDoc.data()!['lastMessage'] ?? '';
+      final data = chatDoc.data()!;
+      final lastMsg = data['lastMessage'];
+      if (lastMsg != null && lastMsg is Map<String, dynamic>) {
+        return {
+          'text': lastMsg['text'] ?? '',
+          'isRead': lastMsg['isRead'] ?? true,
+          'senderId': lastMsg['senderId'] ?? '',
+        };
+      }
+    }
+
+    return {'text': '', 'isRead': true};
+  }
+
+  String _formatTimestamp(dynamic timestamp) {
+    try {
+      if (timestamp == null) return '';
+      if (timestamp is Timestamp) {
+        final dateTime = timestamp.toDate();
+        final now = DateTime.now();
+        final today = DateTime(now.year, now.month, now.day);
+        final msgDay = DateTime(dateTime.year, dateTime.month, dateTime.day);
+
+        if (msgDay == today) {
+          return "${dateTime.hour.toString().padLeft(2, '0')}:${dateTime.minute.toString().padLeft(2, '0')}";
+        } else {
+          return "${dateTime.day}/${dateTime.month}/${dateTime.year}";
+        }
+      }
+    } catch (e) {
+      print("Timestamp formatting error: $e");
     }
     return '';
   }
+
+
+
 
   @override
   Widget build(BuildContext context) {
@@ -267,14 +300,37 @@ class HomePage extends StatelessWidget {
                         final user = users[i];
                         if (user['uid'] == currentUserId) return const SizedBox();
 
-                        return FutureBuilder<String>(
-                          future: _getLastMessage(user['uid']),
-                          builder: (context, msgSnapshot) {
-                            final lastMessage = msgSnapshot.data ?? '';
+                        return StreamBuilder<DocumentSnapshot>(
+                          stream: FirebaseFirestore.instance
+                              .collection('chats')
+                              .doc(appController.getChatId(
+                              FirebaseAuth.instance.currentUser!.uid, user['uid']))
+                              .snapshots(),
+                          builder: (context, snapshot) {
+                            if (!snapshot.hasData || snapshot.data == null) {
+                              return const SizedBox(); // or a loading shimmer, etc.
+                            }
+
+                            final rawData = snapshot.data!.data();
+                            final docData = rawData is Map<String, dynamic> ? rawData : null;
+
+                            final lastMsgData = docData?['lastMessage'] ?? {
+                              'text': '',
+                              'isRead': true,
+                              'senderId': '',
+                            };
+
+                            final lastMessage = lastMsgData['text'] ?? '';
+                            final isRead = lastMsgData['isRead'] ?? true;
+                            final senderId = lastMsgData['senderId'] ?? '';
+
+                            final currentUserId = FirebaseAuth.instance.currentUser?.uid ?? '';
+                            final shouldGlow = !isRead && senderId == user['uid'];
+                            final timestamp = lastMsgData['timestamp'];
+
 
                             return ListTile(
-                              contentPadding: const EdgeInsets.symmetric(
-                                  horizontal: 18, vertical: 5),
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 5),
                               horizontalTitleGap: 12,
                               leading: Stack(
                                 children: [
@@ -283,8 +339,7 @@ class HomePage extends StatelessWidget {
                                     backgroundImage: user['photoUrl'] != null &&
                                         user['photoUrl'].isNotEmpty
                                         ? NetworkImage(user['photoUrl'])
-                                        : const AssetImage(
-                                        'assets/images/no_profile.webp')
+                                        : const AssetImage('assets/images/no_profile.webp')
                                     as ImageProvider,
                                   ),
                                   Positioned(
@@ -296,8 +351,7 @@ class HomePage extends StatelessWidget {
                                       decoration: BoxDecoration(
                                         color: onlineDot,
                                         shape: BoxShape.circle,
-                                        border: Border.all(
-                                            color: Color(0xFF1A1D25), width: 1),
+                                        border: Border.all(color: Color(0xFF1A1D25), width: 1),
                                       ),
                                     ),
                                   ),
@@ -307,9 +361,7 @@ class HomePage extends StatelessWidget {
                                 children: [
                                   Expanded(
                                     child: Text(
-                                      user['name'] ??
-                                          user['displayName'] ??
-                                          'No Name',
+                                      user['name'] ?? user['displayName'] ?? 'No Name',
                                       style: const TextStyle(
                                         color: Colors.white,
                                         fontWeight: FontWeight.w600,
@@ -319,42 +371,47 @@ class HomePage extends StatelessWidget {
                                       overflow: TextOverflow.ellipsis,
                                     ),
                                   ),
-                                  const Text(
-                                    'Online',
-                                    style: TextStyle(
+                                   Text(
+                                    _formatTimestamp(lastMsgData['timestamp']),
+                                    style: const TextStyle(
                                       color: Colors.white54,
                                       fontSize: 13,
                                     ),
                                   ),
+
+
                                 ],
                               ),
-                                subtitle: Text(
-                                  lastMessage.isEmpty ? 'No messages yet' : lastMessage,
-                                  style: TextStyle(
-                                    color: lastMessage.isEmpty ? Colors.white38 : Colors.cyanAccent,
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w500,
-                                    shadows: lastMessage.isEmpty
-                                        ? []
-                                        : [
-                                      Shadow(
-                                        blurRadius: 8,
-                                        color: Colors.cyanAccent.withOpacity(0.7),
-                                        offset: const Offset(0, 0),
-                                      ),
-                                    ],
-                                  ),
-                                  overflow: TextOverflow.ellipsis,
-                                  maxLines: 1,
+                              subtitle: Text(
+                                lastMessage.isEmpty ? 'No messages yet' : lastMessage,
+                                style: TextStyle(
+                                  color: lastMessage.isEmpty
+                                      ? Colors.white38
+                                      : (shouldGlow ? Colors.white : Colors.white70),
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w500,
+                                  shadows: shouldGlow
+                                      ? [
+                                    Shadow(
+                                      blurRadius: 8,
+                                      color: Colors.cyanAccent.withOpacity(0.7),
+                                      offset: const Offset(0, 0),
+                                    ),
+                                  ]
+                                      : [],
                                 ),
-
-
+                                overflow: TextOverflow.ellipsis,
+                                maxLines: 1,
+                              ),
                               onTap: () {
                                 appController.goTochatPage(user['uid']);
                               },
                             );
                           },
                         );
+
+
+
                       },
                     );
                   },

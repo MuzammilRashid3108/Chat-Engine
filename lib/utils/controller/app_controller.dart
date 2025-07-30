@@ -176,7 +176,32 @@ class AppController extends GetxController {
   // ──────────────────────────────
   // Navigation - Go to Chat Page
   // ──────────────────────────────
-  void goTochatPage(String receiverId) {
+  void goTochatPage(String receiverId) async {
+    final currentUserId = auth.currentUser!.uid;
+    final chatId = getChatId(currentUserId, receiverId);
+
+    // 🔁 Mark last message as read if it was sent by the receiver
+    final chatDoc = await FirebaseFirestore.instance.collection('chats').doc(chatId).get();
+    if (chatDoc.exists) {
+      final lastMessage = chatDoc.data()?['lastMessage'];
+      if (lastMessage != null &&
+          lastMessage['senderId'] == receiverId &&
+          lastMessage['isRead'] == false) {
+        await FirebaseFirestore.instance.collection('chats').doc(chatId).set({
+          'lastMessage': {
+            'senderId': lastMessage['senderId'],
+            'receiverId': lastMessage['receiverId'],
+            'text': lastMessage['text'],
+            'timestamp': lastMessage['timestamp'],
+            'type': lastMessage['type'],
+            'isRead': true, // ✅ explicitly override
+          }
+        }, SetOptions(merge: true));
+
+      }
+    }
+
     Get.to(() => ChatPage(receiverId: receiverId));
   }
+
 }
