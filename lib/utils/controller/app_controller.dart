@@ -108,21 +108,34 @@ class AppController extends GetxController {
   }) async {
     final senderId = auth.currentUser!.uid;
     final chatId = getChatId(senderId, receiverId);
+    final timestamp = FieldValue.serverTimestamp();
 
     final message = {
       'senderId': senderId,
       'receiverId': receiverId,
       'text': messageText,
-      'timestamp': FieldValue.serverTimestamp(),
+      'timestamp': timestamp,
       'type': 'text',
+      'isRead': false,
     };
 
+    // ✅ 1. Add message to subcollection
     await FirebaseFirestore.instance
         .collection('chats')
         .doc(chatId)
         .collection('messages')
         .add(message);
+
+    // ✅ 2. Store entire message object as lastMessage
+    await FirebaseFirestore.instance.collection('chats').doc(chatId).set({
+      'lastMessage': message,
+      'lastMessageTime': timestamp,
+      'senderId': senderId,
+      'receiverId': receiverId,
+    }, SetOptions(merge: true));
   }
+
+
 
   // ──────────────────────────────
   // Generate Chat ID

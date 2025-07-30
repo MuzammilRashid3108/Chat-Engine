@@ -10,11 +10,27 @@ class ChatPage extends StatefulWidget {
   final String receiverId;
   ChatPage({Key? key, required this.receiverId}) : super(key: key);
 
+
+
   @override
   State<ChatPage> createState() => _ChatPageState();
 }
 
 class _ChatPageState extends State<ChatPage> {
+
+  String _formatLastSeen(Timestamp? timestamp) {
+    if (timestamp == null) return 'Last seen: unknown';
+
+    final DateTime lastSeen = timestamp.toDate();
+    final now = DateTime.now();
+    final difference = now.difference(lastSeen);
+
+    if (difference.inMinutes < 1) return 'Last seen just now';
+    if (difference.inMinutes < 60) return 'Last seen ${difference.inMinutes} min ago';
+    if (difference.inHours < 24) return 'Last seen ${difference.inHours} hr ago';
+    if (difference.inDays == 1) return 'Last seen yesterday';
+    return 'Last seen on ${lastSeen.day}/${lastSeen.month}/${lastSeen.year}';
+  }
   final appController = Get.find<AppController>();
   late String chatId;
   DocumentSnapshot? receiverData;
@@ -71,10 +87,11 @@ class _ChatPageState extends State<ChatPage> {
                     fontSize: 14,
                   ),
                 ),
-                const Text(
-                  "Active 2h ago", // You can replace with real-time status
-                  style: TextStyle(color: Colors.grey, fontSize: 12),
+                Text(
+                  _formatLastSeen(receiverData?.get('lastSeen')),
+                  style: const TextStyle(color: Colors.white60, fontSize: 12),
                 ),
+
               ],
             ),
           ],
