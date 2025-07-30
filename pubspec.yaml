@@ -74,6 +74,7 @@ flutter:
     - assets/auth_logos/google.png
     - assets/auth_logos/facebook.png
     - assets/images/profile.jpeg
+    - assets/images/no_profile.webp
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

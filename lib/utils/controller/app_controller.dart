@@ -81,6 +81,7 @@ class AppController extends GetxController {
       await userDoc.set({
         'uid': user.uid,
         'name': user.displayName,
+        'displayName': user.displayName,
         'email': user.email,
         'photoUrl': user.photoURL,
         'isOnline': true,

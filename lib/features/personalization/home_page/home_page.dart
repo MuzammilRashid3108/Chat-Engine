@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:get/get_core/src/get_main.dart';
@@ -81,15 +83,15 @@ class HomePage extends StatelessWidget {
 
           // Stories
           SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.only(top: 25, left: 12),
-              child: SizedBox(
-                height: 95,
-                child: ListView.separated(
-                  scrollDirection: Axis.horizontal,
-                  itemCount: 8,
-                  separatorBuilder: (_, __) => const SizedBox(width: 12),
-                  itemBuilder: (context, i) => Column(
+            child: StreamBuilder<QuerySnapshot>(
+              stream: FirebaseFirestore.instance.collection('users').snapshots(),
+              builder: (context, snapshot) {
+                Widget buildStoryAvatar({
+                  required String name,
+                  required String photoUrl,
+                  bool isCurrentUser = false,
+                }) {
+                  return Column(
                     children: [
                       Container(
                         padding: const EdgeInsets.all(2),
@@ -111,25 +113,91 @@ class HomePage extends StatelessWidget {
                             shape: BoxShape.circle,
                             color: Colors.black,
                           ),
-                          child: const CircleAvatar(
+                          child: CircleAvatar(
                             radius: 26,
-                            backgroundImage: AssetImage('assets/images/profile.jpeg'),
+                            backgroundImage: (photoUrl.isNotEmpty)
+                                ? NetworkImage(photoUrl)
+                                : AssetImage(
+                              isCurrentUser
+                                  ? 'assets/images/default_profile.png'
+                                  : 'assets/images/no_profile.webp',
+                            ) as ImageProvider,
                           ),
                         ),
                       ),
                       const SizedBox(height: 8),
-                      Text(
-                        i == 0 ? 'You' : 'User $i',
-                        style: const TextStyle(
-                          color: Colors.white70,
-                          fontSize: 12,
-                          fontFamily: 'Open Sans',
+                      SizedBox(
+                        width: 60,
+                        child: Text(
+                          name,
+                          style: const TextStyle(
+                            color: Colors.white70,
+                            fontSize: 12,
+                            fontFamily: 'Open Sans',
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                          textAlign: TextAlign.center,
+                          maxLines: 1,
                         ),
                       ),
                     ],
+                  );
+                }
+
+                if (!snapshot.hasData) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+
+                final users = snapshot.data!.docs;
+                final currentUserId = FirebaseAuth.instance.currentUser?.uid;
+
+                if (currentUserId == null) {
+                  return const Center(
+                    child: Text("No user logged in", style: TextStyle(color: Colors.white)),
+                  );
+                }
+
+                final currentUser = users.any((doc) => doc['uid'] == currentUserId)
+                    ? users.firstWhere((doc) => doc['uid'] == currentUserId)
+                    : null;
+
+                final otherUsers = users.where((doc) => doc['uid'] != currentUserId).toList();
+
+                return Padding(
+                  padding: const EdgeInsets.only(top: 25, left: 12),
+                  child: SizedBox(
+                    height: 95,
+                    child: ListView.separated(
+                      scrollDirection: Axis.horizontal,
+                      itemCount: otherUsers.length + 1,
+                      separatorBuilder: (_, __) => const SizedBox(width: 12),
+                      itemBuilder: (context, index) {
+                        if (index == 0) {
+                          // Safely get currentUser photoUrl
+                          final currentUserData = currentUser?.data() as Map<String, dynamic>? ?? {};
+                          final currentUserPhotoUrl = currentUserData['photoUrl'] ?? '';
+
+                          return buildStoryAvatar(
+                            name: 'You',
+                            photoUrl: currentUserPhotoUrl,
+                            isCurrentUser: true,
+                          );
+                        }
+
+                        final user = otherUsers[index - 1];
+                        final userData = user.data() as Map<String, dynamic>;
+                        final name = userData['name'] ?? userData['displayName'] ?? 'User';
+                        final photoUrl = userData['photoUrl'] ?? '';
+
+                        return buildStoryAvatar(
+                          name: name,
+                          photoUrl: photoUrl,
+                        );
+                      },
+                    ),
                   ),
-                ),
-              ),
+                );
+              },
             ),
           ),
 
@@ -177,7 +245,10 @@ class HomePage extends StatelessWidget {
                         children: [
                           CircleAvatar(
                             radius: 26,
-                            backgroundImage: NetworkImage(user['photoUrl'] ?? ''),
+                            backgroundImage: user['photoUrl'] != null && user['photoUrl'].isNotEmpty
+                                ? NetworkImage(user['photoUrl'])
+                                : const AssetImage('assets/images/no_profile.webp') as ImageProvider,
+
                           ),
                           Positioned(
                             bottom: 2,
@@ -198,7 +269,7 @@ class HomePage extends StatelessWidget {
                         children: [
                           Expanded(
                             child: Text(
-                              user['name'] ?? 'No Name',
+                              user['name'] ?? user['displayName'] ?? 'No Name',
                               style: const TextStyle(
                                 color: Colors.white,
                                 fontWeight: FontWeight.w600,
