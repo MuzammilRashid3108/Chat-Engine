@@ -134,29 +134,51 @@ class HomePage extends StatelessWidget {
           ),
 
           // Chat List
-          SliverList(
-            delegate: SliverChildBuilderDelegate(
-              childCount: 10,
-                  (context, i) => Column(
-                children: [
-                  if (i > 0)
-                    const Divider(
-                      color: Color(0xFF2A2D35),
-                      thickness: 0.6,
-                      height: 1,
-                      indent: 70,
-                      endIndent: 16,
+          SliverToBoxAdapter(
+            child: StreamBuilder<List<Map<String, dynamic>>>(
+              stream: appController.getAllUsersStream(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+
+                if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                  return const Center(
+                    child: Text(
+                      "No users found",
+                      style: TextStyle(color: Colors.white),
                     ),
-                  ListTile(
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 5),
-                    horizontalTitleGap: 12,
-                    leading: Stack(
-                      children: [
-                        const CircleAvatar(
-                          radius: 26,
-                          backgroundImage: AssetImage('assets/images/profile.jpeg'),
-                        ),
-                        if (i % 2 == 0)
+                  );
+                }
+
+                final users = snapshot.data!;
+                final currentUserId = appController.auth.currentUser?.uid;
+
+                return ListView.separated(
+                  padding: const EdgeInsets.only(top: 12),
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: users.length,
+                  separatorBuilder: (_, __) => const Divider(
+                    color: Color(0xFF2A2D35),
+                    thickness: 0.6,
+                    height: 1,
+                    indent: 70,
+                    endIndent: 16,
+                  ),
+                  itemBuilder: (context, i) {
+                    final user = users[i];
+                    if (user['uid'] == currentUserId) return const SizedBox(); // Skip current user
+
+                    return ListTile(
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 5),
+                      horizontalTitleGap: 12,
+                      leading: Stack(
+                        children: [
+                          CircleAvatar(
+                            radius: 26,
+                            backgroundImage: NetworkImage(user['photoUrl'] ?? ''),
+                          ),
                           Positioned(
                             bottom: 2,
                             right: 2,
@@ -164,81 +186,52 @@ class HomePage extends StatelessWidget {
                               width: 13,
                               height: 13,
                               decoration: BoxDecoration(
-                                color: onlineDot,
+                                color: Color(0xFF4BCB1F), // onlineDot
                                 shape: BoxShape.circle,
                                 border: Border.all(color: Color(0xFF1A1D25), width: 1),
                               ),
                             ),
                           ),
-                      ],
-                    ),
-                    title: Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            'Contact ${i + 1}',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w600,
-                              fontSize: 16,
-                              fontFamily: 'Open Sans',
-                            ),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        Text(
-                          '12:${i}0',
-                          style: const TextStyle(
-                            color: Colors.white54,
-                            fontSize: 13,
-                            fontFamily: 'Open Sans',
-                          ),
-                        ),
-                      ],
-                    ),
-                    subtitle: Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            'Active 2h ago',
-                            style: const TextStyle(
-                              color: Colors.white60,
-                              fontSize: 14,
-                              fontFamily: 'Open Sans',
-                            ),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        if (i % 3 == 0)
-                          Container(
-                            height: 10,
-                            width: 10,
-                            margin: const EdgeInsets.only(left: 10),
-                            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: unreadBg,
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: const Text(
-                              '1',
-                              style: TextStyle(
+                        ],
+                      ),
+                      title: Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              user['name'] ?? 'No Name',
+                              style: const TextStyle(
                                 color: Colors.white,
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
+                                fontWeight: FontWeight.w600,
+                                fontSize: 16,
                                 fontFamily: 'Open Sans',
                               ),
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
-                      ],
-                    ),
-                    onTap: () {
-                      appController.goTochatPage("MfaYW3IVF3SwowiCePv9CVz4JSk2");
-                    },
-                  ),
-                ],
-              ),
+                          Text(
+                            'Online',
+                            style: const TextStyle(
+                              color: Colors.white54,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ],
+                      ),
+                      subtitle: Text(
+                        user['email'] ?? '',
+                        style: const TextStyle(color: Colors.white60, fontSize: 14),
+                      ),
+                      onTap: () {
+                        appController.goTochatPage(user['uid']);
+                      },
+                    );
+                  },
+                );
+              },
             ),
           ),
+
+
         ],
       ),
 
