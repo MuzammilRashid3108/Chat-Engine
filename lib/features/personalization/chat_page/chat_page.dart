@@ -5,33 +5,20 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:lucide_icons/lucide_icons.dart';
+import 'package:intl/intl.dart';
 
 class ChatPage extends StatefulWidget {
   final String receiverId;
   ChatPage({Key? key, required this.receiverId}) : super(key: key);
-
-
 
   @override
   State<ChatPage> createState() => _ChatPageState();
 }
 
 class _ChatPageState extends State<ChatPage> {
-
-  String _formatLastSeen(Timestamp? timestamp) {
-    if (timestamp == null) return 'Last seen: unknown';
-
-    final DateTime lastSeen = timestamp.toDate();
-    final now = DateTime.now();
-    final difference = now.difference(lastSeen);
-
-    if (difference.inMinutes < 1) return 'Last seen just now';
-    if (difference.inMinutes < 60) return 'Last seen ${difference.inMinutes} min ago';
-    if (difference.inHours < 24) return 'Last seen ${difference.inHours} hr ago';
-    if (difference.inDays == 1) return 'Last seen yesterday';
-    return 'Last seen on ${lastSeen.day}/${lastSeen.month}/${lastSeen.year}';
-  }
   final appController = Get.find<AppController>();
+  final ScrollController _scrollController = ScrollController();
+
   late String chatId;
   DocumentSnapshot? receiverData;
 
@@ -41,18 +28,29 @@ class _ChatPageState extends State<ChatPage> {
     final senderId = FirebaseAuth.instance.currentUser!.uid;
     chatId = appController.getChatId(senderId, widget.receiverId);
 
-    // Fetch receiver user data
-    FirebaseFirestore.instance
-        .collection('users')
-        .doc(widget.receiverId)
-        .get()
-        .then((doc) {
+    FirebaseFirestore.instance.collection('users').doc(widget.receiverId).get().then((doc) {
       if (doc.exists) {
         setState(() {
           receiverData = doc;
         });
       }
     });
+  }
+
+  String _formatLastSeen(Timestamp? timestamp) {
+    if (timestamp == null) return 'Last seen: unknown';
+    final DateTime lastSeen = timestamp.toDate();
+    final now = DateTime.now();
+    final difference = now.difference(lastSeen);
+    if (difference.inMinutes < 1) return 'Last seen just now';
+    if (difference.inMinutes < 60) return 'Last seen ${difference.inMinutes} min ago';
+    if (difference.inHours < 24) return 'Last seen ${difference.inHours} hr ago';
+    if (difference.inDays == 1) return 'Last seen yesterday';
+    return 'Last seen on ${lastSeen.day}/${lastSeen.month}/${lastSeen.year}';
+  }
+
+  String _formatTimestamp(Timestamp timestamp) {
+    return DateFormat('MMM d, hh:mm a').format(timestamp.toDate());
   }
 
   @override
@@ -74,7 +72,6 @@ class _ChatPageState extends State<ChatPage> {
                   : const AssetImage('assets/images/profile.jpeg') as ImageProvider,
               radius: 14,
             ),
-
             const SizedBox(width: 15),
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -91,7 +88,6 @@ class _ChatPageState extends State<ChatPage> {
                   _formatLastSeen(receiverData?.get('lastSeen')),
                   style: const TextStyle(color: Colors.white60, fontSize: 12),
                 ),
-
               ],
             ),
           ],
@@ -123,39 +119,64 @@ class _ChatPageState extends State<ChatPage> {
                 }
 
                 final messages = snapshot.data!.docs;
+                final currentUserId = FirebaseAuth.instance.currentUser!.uid;
+
+                // Auto scroll to bottom when messages load
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  if (_scrollController.hasClients) {
+                    _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
+                  }
+                });
 
                 return ListView.builder(
-                  padding:
-                  const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  controller: _scrollController,
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                   itemCount: messages.length,
                   itemBuilder: (context, index) {
                     final msg = messages[index];
-                    final isMe = msg['senderId'] ==
-                        FirebaseAuth.instance.currentUser!.uid;
+                    final data = msg.data() as Map<String, dynamic>;
+                    final timestamp = data['timestamp'] as Timestamp?;
+                    final isMe = data['senderId'] == currentUserId;
 
-                    return Align(
-                      alignment: isMe
-                          ? Alignment.centerRight
-                          : Alignment.centerLeft,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 14, vertical: 10),
-                        margin: const EdgeInsets.symmetric(vertical: 4),
-                        constraints: BoxConstraints(
-                          maxWidth:
-                          MediaQuery.of(context).size.width * 0.7,
-                        ),
-                        decoration: BoxDecoration(
-                          color: isMe
-                              ? const Color(0xFF0084FF)
-                              : const Color(0xFF2C2F33),
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: Text(
-                          msg['text'],
-                          style: const TextStyle(color: Colors.white),
-                        ),
+                    final messageWidget = Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                      margin: const EdgeInsets.symmetric(vertical: 4),
+                      constraints: BoxConstraints(
+                        maxWidth: MediaQuery.of(context).size.width * 0.7,
                       ),
+                      decoration: BoxDecoration(
+                        color: isMe ? const Color(0xFF0084FF) : const Color(0xFF2C2F33),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Text(
+                        data['text'],
+                        style: const TextStyle(color: Colors.white),
+                      ),
+                    );
+
+                    return Column(
+                      crossAxisAlignment:
+                      isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+                      children: [
+                        if ((index + 1) % 10 == 0 && timestamp != null)
+                          Center(
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 8),
+                              child: Text(
+                                _formatTimestamp(timestamp),
+                                style: const TextStyle(
+                                  color: Colors.white60,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ),
+                          ),
+                        Align(
+                          alignment:
+                          isMe ? Alignment.centerRight : Alignment.centerLeft,
+                          child: messageWidget,
+                        ),
+                      ],
                     );
                   },
                 );

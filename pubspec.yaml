@@ -45,6 +45,7 @@ dependencies:
   lucide_icons: ^0.257.0
   firebase_storage: ^12.4.10
   firebase_messaging: ^15.2.10
+  intl: ^0.20.2
 
 dev_dependencies:
   flutter_test:
