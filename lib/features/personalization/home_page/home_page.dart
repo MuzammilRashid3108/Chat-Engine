@@ -1,15 +1,24 @@
+import 'dart:async';
+
 import 'package:chat_engine/common/widgets/animations/blur_screen.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:intl/intl.dart';
 
 import '../../../utils/controller/app_controller.dart';
+import 'chat_card.dart';
 
-class HomePage extends StatelessWidget {
+class HomePage extends StatefulWidget {
+  const HomePage({super.key});
+
+  @override
+  State<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
   final appController = Get.put(AppController());
-
-  HomePage({super.key});
 
   Future<Map<String, dynamic>> _getLastMessage(String receiverId) async {
     final senderId = FirebaseAuth.instance.currentUser?.uid;
@@ -54,9 +63,6 @@ class HomePage extends StatelessWidget {
     return '';
   }
 
-
-
-
   @override
   Widget build(BuildContext context) {
     const bgColor = Color(0xFF10131A);
@@ -86,8 +92,7 @@ class HomePage extends StatelessWidget {
             ),
             actions: [
               IconButton(
-                icon:
-                const Icon(Icons.camera_alt_outlined, color: Colors.white70),
+                icon: const Icon(Icons.camera_alt_outlined, color: Colors.white70),
                 onPressed: () {
                   appController.signOutUser();
                 },
@@ -111,8 +116,7 @@ class HomePage extends StatelessWidget {
                       decoration: InputDecoration(
                         filled: true,
                         fillColor: Colors.white.withOpacity(0.06),
-                        prefixIcon:
-                        const Icon(Icons.search, color: Colors.white38),
+                        prefixIcon: const Icon(Icons.search, color: Colors.white38),
                         hintText: 'Search',
                         hintStyle: const TextStyle(
                           color: Colors.white38,
@@ -133,17 +137,14 @@ class HomePage extends StatelessWidget {
               // ✅ Stories
               SliverToBoxAdapter(
                 child: StreamBuilder<QuerySnapshot>(
-                  stream: FirebaseFirestore.instance
-                      .collection('users')
-                      .snapshots(),
+                  stream: FirebaseFirestore.instance.collection('users').snapshots(),
                   builder: (context, snapshot) {
                     if (!snapshot.hasData) {
                       return const Center(child: CircularProgressIndicator());
                     }
 
                     final users = snapshot.data!.docs;
-                    final currentUserId =
-                        FirebaseAuth.instance.currentUser?.uid;
+                    final currentUserId = FirebaseAuth.instance.currentUser?.uid;
 
                     if (currentUserId == null) {
                       return const Center(
@@ -158,8 +159,7 @@ class HomePage extends StatelessWidget {
                         ? users.firstWhere((doc) => doc['uid'] == currentUserId)
                         : null;
 
-                    final otherUsers =
-                    users.where((doc) => doc['uid'] != currentUserId).toList();
+                    final otherUsers = users.where((doc) => doc['uid'] != currentUserId).toList();
 
                     Widget buildStoryAvatar({
                       required String name,
@@ -226,15 +226,11 @@ class HomePage extends StatelessWidget {
                         child: ListView.separated(
                           scrollDirection: Axis.horizontal,
                           itemCount: otherUsers.length + 1,
-                          separatorBuilder: (_, __) =>
-                          const SizedBox(width: 12),
+                          separatorBuilder: (_, __) => const SizedBox(width: 12),
                           itemBuilder: (context, index) {
                             if (index == 0) {
-                              final currentUserData = currentUser?.data()
-                              as Map<String, dynamic>? ??
-                                  {};
-                              final currentUserPhotoUrl =
-                                  currentUserData['photoUrl'] ?? '';
+                              final currentUserData = currentUser?.data() as Map<String, dynamic>? ?? {};
+                              final currentUserPhotoUrl = currentUserData['photoUrl'] ?? '';
 
                               return buildStoryAvatar(
                                 name: 'You',
@@ -244,11 +240,8 @@ class HomePage extends StatelessWidget {
                             }
 
                             final user = otherUsers[index - 1];
-                            final userData =
-                            user.data() as Map<String, dynamic>;
-                            final name = userData['name'] ??
-                                userData['displayName'] ??
-                                'User';
+                            final userData = user.data() as Map<String, dynamic>;
+                            final name = userData['name'] ?? userData['displayName'] ?? 'User';
                             final photoUrl = userData['photoUrl'] ?? '';
 
                             return buildStoryAvatar(
@@ -264,160 +257,7 @@ class HomePage extends StatelessWidget {
               ),
 
               // ✅ Chat List
-              SliverToBoxAdapter(
-                child: StreamBuilder<List<Map<String, dynamic>>>(
-                  stream: appController.getAllUsersStream(),
-                  builder: (context, snapshot) {
-                    if (snapshot.connectionState == ConnectionState.waiting) {
-                      return const Center(child: CircularProgressIndicator());
-                    }
-
-                    if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                      return const Center(
-                        child: Text(
-                          "No users found",
-                          style: TextStyle(color: Colors.white),
-                        ),
-                      );
-                    }
-
-                    final users = snapshot.data!;
-                    final currentUserId = appController.auth.currentUser?.uid;
-
-                    return ListView.separated(
-                      padding: const EdgeInsets.only(top: 12),
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      itemCount: users.length,
-                      separatorBuilder: (_, __) => const Divider(
-                        color: Color(0xFF2A2D35),
-                        thickness: 0.6,
-                        height: 1,
-                        indent: 70,
-                        endIndent: 16,
-                      ),
-                      itemBuilder: (context, i) {
-                        final user = users[i];
-                        if (user['uid'] == currentUserId) return const SizedBox();
-
-                        return StreamBuilder<DocumentSnapshot>(
-                          stream: FirebaseFirestore.instance
-                              .collection('chats')
-                              .doc(appController.getChatId(
-                              FirebaseAuth.instance.currentUser!.uid, user['uid']))
-                              .snapshots(),
-                          builder: (context, snapshot) {
-                            if (!snapshot.hasData || snapshot.data == null) {
-                              return const SizedBox(); // or a loading shimmer, etc.
-                            }
-
-                            final rawData = snapshot.data!.data();
-                            final docData = rawData is Map<String, dynamic> ? rawData : null;
-
-                            final lastMsgData = docData?['lastMessage'] ?? {
-                              'text': '',
-                              'isRead': true,
-                              'senderId': '',
-                            };
-
-                            final lastMessage = lastMsgData['text'] ?? '';
-                            final isRead = lastMsgData['isRead'] ?? true;
-                            final senderId = lastMsgData['senderId'] ?? '';
-
-                            final currentUserId = FirebaseAuth.instance.currentUser?.uid ?? '';
-                            final shouldGlow = !isRead && senderId == user['uid'];
-                            final timestamp = lastMsgData['timestamp'];
-
-
-                            return ListTile(
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 5),
-                              horizontalTitleGap: 12,
-                              leading: Stack(
-                                children: [
-                                  CircleAvatar(
-                                    radius: 26,
-                                    backgroundImage: user['photoUrl'] != null &&
-                                        user['photoUrl'].isNotEmpty
-                                        ? NetworkImage(user['photoUrl'])
-                                        : const AssetImage('assets/images/no_profile.webp')
-                                    as ImageProvider,
-                                  ),
-                                  user['isOnline'] == true                                ? Positioned(
-                              bottom: 2,
-                              right: 2,
-                              child: Container(
-                                width: 13,
-                                height: 13,
-                                decoration: BoxDecoration(
-                                  color: onlineDot, // usually Colors.green
-                                  shape: BoxShape.circle,
-                                  border: Border.all(color: Color(0xFF1A1D25), width: 1),
-                                ),
-                              ),
-                            )
-                                : SizedBox.shrink(),
-                                ],
-                              ),
-                              title: Row(
-                                children: [
-                                  Expanded(
-                                    child: Text(
-                                      user['name'] ?? user['displayName'] ?? 'No Name',
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.w600,
-                                        fontSize: 16,
-                                        fontFamily: 'Open Sans',
-                                      ),
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ),
-                                   Text(
-                                    _formatTimestamp(lastMsgData['timestamp']),
-                                    style: const TextStyle(
-                                      color: Colors.white54,
-                                      fontSize: 13,
-                                    ),
-                                  ),
-
-
-                                ],
-                              ),
-                              subtitle: Text(
-                                lastMessage.isEmpty ? 'No messages yet' : lastMessage,
-                                style: TextStyle(
-                                  color: lastMessage.isEmpty
-                                      ? Colors.white38
-                                      : (shouldGlow ? Colors.white : Colors.white70),
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w500,
-                                  shadows: shouldGlow
-                                      ? [
-                                    Shadow(
-                                      blurRadius: 8,
-                                      color: Colors.cyanAccent.withOpacity(0.7),
-                                      offset: const Offset(0, 0),
-                                    ),
-                                  ]
-                                      : [],
-                                ),
-                                overflow: TextOverflow.ellipsis,
-                                maxLines: 1,
-                              ),
-                              onTap: () {
-                                appController.goTochatPage(user['uid']);
-                              },
-                            );
-                          },
-                        );
-
-
-
-                      },
-                    );
-                  },
-                ),
-              ),
+              const SeenAwareUserList(),
             ],
           ),
           floatingActionButton: FloatingActionButton(
