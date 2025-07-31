@@ -57,19 +57,34 @@ class AppController extends GetxController {
   // ──────────────────────────────
   Future<void> signOutUser() async {
     try {
+      final userId = auth.currentUser?.uid;
+
+      // Step 1: Update Firestore before sign-out
+      if (userId != null) {
+        await FirebaseFirestore.instance.collection('users').doc(userId).update({
+          'isOnline': false,
+          'lastSeen': FieldValue.serverTimestamp(),
+        });
+      }
+
+      // Step 2: Sign out from Firebase Auth
       await auth.signOut();
 
+      // Step 3: Sign out from Google, if connected
       if (await googleSignIn.isSignedIn()) {
         await googleSignIn.disconnect();
         await googleSignIn.signOut();
       }
 
       print('✅ User signed out successfully');
+
+      // Step 4: Navigate to Welcome Page
       Get.offAll(() => WelcomePage());
     } catch (e) {
       print('❌ Error signing out: $e');
     }
   }
+
 
   // ──────────────────────────────
   // Get User Photo URL

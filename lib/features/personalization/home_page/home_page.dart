@@ -342,19 +342,20 @@ class HomePage extends StatelessWidget {
                                         : const AssetImage('assets/images/no_profile.webp')
                                     as ImageProvider,
                                   ),
-                                  Positioned(
-                                    bottom: 2,
-                                    right: 2,
-                                    child: Container(
-                                      width: 13,
-                                      height: 13,
-                                      decoration: BoxDecoration(
-                                        color: onlineDot,
-                                        shape: BoxShape.circle,
-                                        border: Border.all(color: Color(0xFF1A1D25), width: 1),
-                                      ),
-                                    ),
-                                  ),
+                                  user['isOnline'] == true                                ? Positioned(
+                              bottom: 2,
+                              right: 2,
+                              child: Container(
+                                width: 13,
+                                height: 13,
+                                decoration: BoxDecoration(
+                                  color: onlineDot, // usually Colors.green
+                                  shape: BoxShape.circle,
+                                  border: Border.all(color: Color(0xFF1A1D25), width: 1),
+                                ),
+                              ),
+                            )
+                                : SizedBox.shrink(),
                                 ],
                               ),
                               title: Row(
