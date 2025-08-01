@@ -46,6 +46,11 @@ dependencies:
   firebase_storage: ^12.4.10
   firebase_messaging: ^15.2.10
   intl: ^0.20.2
+  file_picker: ^10.2.0
+  image_picker: ^1.1.2
+  path: ^1.9.1
+  url_launcher: ^6.3.2
+  http: ^1.4.0
 
 dev_dependencies:
   flutter_test:

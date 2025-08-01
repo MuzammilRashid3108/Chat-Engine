@@ -94,17 +94,20 @@ class AppController extends GetxController {
   Future<void> sendMessage({
     required String receiverId,
     required String messageText,
+    String type = 'text',
   }) async {
-    final senderId = auth.currentUser!.uid;
+    final senderId = FirebaseAuth.instance.currentUser!.uid;
     final chatId = getChatId(senderId, receiverId);
     final timestamp = FieldValue.serverTimestamp();
+    final photoUrl = FirebaseAuth.instance.currentUser?.photoURL ?? '';
 
     final message = {
       'senderId': senderId,
       'receiverId': receiverId,
-      'text': messageText,
+      'content': messageText,
       'timestamp': timestamp,
-      'type': 'text',
+      'photoUrl': photoUrl, // Optional, remove if not needed
+      'type': type,
       'isRead': false,
     };
 
@@ -121,6 +124,8 @@ class AppController extends GetxController {
       'receiverId': receiverId,
     }, SetOptions(merge: true));
   }
+
+
 
   String getChatId(String user1, String user2) {
     return user1.hashCode <= user2.hashCode

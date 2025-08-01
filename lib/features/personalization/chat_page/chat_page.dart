@@ -29,6 +29,7 @@ class _ChatPageState extends State<ChatPage> {
   void initState() {
     super.initState();
     final senderId = FirebaseAuth.instance.currentUser!.uid;
+
     chatId = appController.getChatId(senderId, widget.receiverId);
     FirebaseFirestore.instance.collection('users').doc(widget.receiverId).get().then((doc) {
       if (doc.exists) {
@@ -61,6 +62,7 @@ class _ChatPageState extends State<ChatPage> {
     final receiverName = receiverData?.get('name') ?? 'Loading...';
     final photoUrl = receiverData?.get('photoUrl');
     final lastSeen = receiverData?.get('lastSeen');
+
 
     return Scaffold(
       backgroundColor: Colors.black,
@@ -115,9 +117,17 @@ class _ChatPageState extends State<ChatPage> {
                   itemBuilder: (context, index) {
                     final msg = messages[index];
                     final data = msg.data() as Map<String, dynamic>;
+
+                    // 👇 Skip message if 'type' or 'content' is missing or null
+                    if (data['type'] == null || data['content'] == null) {
+                      return const SizedBox.shrink(); // skip this item
+                    }
+
                     final timestamp = data['timestamp'] as Timestamp?;
                     final isMe = data['senderId'] == currentUserId;
                     final isLastMessage = index == messages.length - 1 && isMe;
+
+                    final senderImageUrl = !isMe ? (receiverData?.get('photoUrl') ?? '') : '';
 
                     return Column(
                       crossAxisAlignment:
@@ -126,8 +136,9 @@ class _ChatPageState extends State<ChatPage> {
                         if ((index + 1) % 7 == 0 && timestamp != null)
                           TimestampLabel(timestamp: timestamp),
                         MessageBubble(
-                          text: data['text'],
+                          message: data,
                           isMe: isMe,
+                          senderImageUrl: senderImageUrl,
                         ),
                         SeenLabel(
                           isLastMessage: isLastMessage,
@@ -136,6 +147,8 @@ class _ChatPageState extends State<ChatPage> {
                       ],
                     );
                   },
+
+
                 );
               },
             ),
