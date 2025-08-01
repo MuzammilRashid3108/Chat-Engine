@@ -13,7 +13,6 @@ class MessageBubble extends StatelessWidget {
   final void Function(Map<String, dynamic> message)? onUnsend;
   final Function(Map<String, dynamic> messageData) onSwipeToReply;
 
-
   const MessageBubble({
     super.key,
     required this.message,
@@ -23,7 +22,8 @@ class MessageBubble extends StatelessWidget {
     this.onReply,
     this.onForward,
     this.onDeleteForMe,
-    this.onUnsend, required this.onSwipeToReply,
+    this.onUnsend,
+    required this.onSwipeToReply,
   });
 
   void _launchURL(String url) async {
@@ -35,6 +35,18 @@ class MessageBubble extends StatelessWidget {
     }
   }
 
+  void _translateMessage(BuildContext context) {
+    const translated = '📘 Translated: This is sample translated text';
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        backgroundColor: Colors.grey.shade900,
+        title: const Text('Translated', style: TextStyle(color: Colors.white)),
+        content: const Text(translated, style: TextStyle(color: Colors.white70)),
+      ),
+    );
+  }
+
   void _showMessageOptions(BuildContext context) {
     showModalBottomSheet(
       context: context,
@@ -42,80 +54,61 @@ class MessageBubble extends StatelessWidget {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
-      builder: (context) =>
-          Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const SizedBox(height: 8),
-              SizedBox(
-                height: 60,
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: ['👍', '❤️', '😂', '😮', '😢', '👏'].map((emoji) {
-                    return GestureDetector(
-                      onTap: () {
-                        Navigator.pop(context);
-                        onReact?.call(emoji);
-                      },
-                      child: Text(emoji, style: const TextStyle(fontSize: 26)),
-                    );
-                  }).toList(),
-                ),
-              ),
-              const Divider(color: Colors.white24),
-              _buildOption(context, Icons.reply, 'Reply', () {
-                Navigator.pop(context);
-                onReply?.call(message);
-              }),
-              _buildOption(context, Icons.forward, 'Forward', () {
-                Navigator.pop(context);
-                onForward?.call(message);
-              }),
-              _buildOption(context, Icons.copy, 'Copy', () {
-                Navigator.pop(context);
-                Clipboard.setData(
-                  ClipboardData(text: message['content'] ?? ''),
+      builder: (context) => Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const SizedBox(height: 8),
+          SizedBox(
+            height: 60,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: ['👍', '❤️', '😂', '😮', '😢', '👏'].map((emoji) {
+                return GestureDetector(
+                  onTap: () {
+                    Navigator.pop(context);
+                    onReact?.call(emoji);
+                  },
+                  child: Text(emoji, style: const TextStyle(fontSize: 26)),
                 );
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Message copied')),
-                );
-              }),
-              _buildOption(context, Icons.translate, 'Translate', () {
-                Navigator.pop(context);
-                _translateMessage(context);
-              }),
-              _buildOption(context, Icons.delete_outline, 'Delete for you', () {
-                Navigator.pop(context);
-                onDeleteForMe?.call(message);
-              }),
-              if (isMe)
-                _buildOption(context, Icons.block, 'Unsend', () {
-                  Navigator.pop(context);
-                  onUnsend?.call(message);
-                }),
-              const SizedBox(height: 8),
-            ],
+              }).toList(),
+            ),
           ),
+          const Divider(color: Colors.white24),
+          _buildOption(context, Icons.reply, 'Reply', () {
+            Navigator.pop(context);
+            onReply?.call(message);
+          }),
+          _buildOption(context, Icons.forward, 'Forward', () {
+            Navigator.pop(context);
+            onForward?.call(message); // 👈 Forward handled by parent
+          }),
+          _buildOption(context, Icons.copy, 'Copy', () {
+            Navigator.pop(context);
+            Clipboard.setData(ClipboardData(text: message['content'] ?? ''));
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Message copied')),
+            );
+          }),
+          _buildOption(context, Icons.translate, 'Translate', () {
+            Navigator.pop(context);
+            _translateMessage(context);
+          }),
+          _buildOption(context, Icons.delete_outline, 'Delete for you', () {
+            Navigator.pop(context);
+            onDeleteForMe?.call(message);
+          }),
+          if (isMe)
+            _buildOption(context, Icons.block, 'Unsend', () {
+              Navigator.pop(context);
+              onUnsend?.call(message);
+            }),
+          const SizedBox(height: 8),
+        ],
+      ),
     );
   }
 
-  void _translateMessage(BuildContext context) {
-    final translated = '📘 Translated: This is sample translated text';
-    showDialog(
-      context: context,
-      builder: (_) =>
-          AlertDialog(
-            backgroundColor: Colors.grey.shade900,
-            title: const Text(
-                'Translated', style: TextStyle(color: Colors.white)),
-            content: Text(
-                translated, style: const TextStyle(color: Colors.white70)),
-          ),
-    );
-  }
-
-  Widget _buildOption(BuildContext context, IconData icon, String label,
-      VoidCallback onTap) {
+  Widget _buildOption(BuildContext context, IconData icon, String label, VoidCallback onTap) {
     return ListTile(
       leading: Icon(icon, color: Colors.white),
       title: Text(label, style: const TextStyle(color: Colors.white)),
@@ -129,6 +122,7 @@ class MessageBubble extends StatelessWidget {
     final content = message['content'];
     final reaction = message['reaction'];
     final repliedTo = message['repliedTo'];
+    final isForwarded = message['forwarded'] == true;
 
     Widget innerContent;
 
@@ -188,8 +182,7 @@ class MessageBubble extends StatelessWidget {
           alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.end,
-            mainAxisAlignment:
-            isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
+            mainAxisAlignment: isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
             children: [
               if (!isMe)
                 CircleAvatar(
@@ -228,22 +221,27 @@ class MessageBubble extends StatelessWidget {
                                   ),
                                 ),
                               ),
+                            if (isForwarded)
+                              const Text(
+                                'Forwarded',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.white54,
+                                  fontStyle: FontStyle.italic,
+                                ),
+                              ),
                             type == 'image'
                                 ? innerContent
                                 : Container(
                               padding: const EdgeInsets.symmetric(
                                   vertical: 10, horizontal: 14),
                               decoration: BoxDecoration(
-                                color: isMe
-                                    ? Colors.purple
-                                    : Colors.white12,
+                                color: isMe ? Colors.purple : Colors.white12,
                                 borderRadius: BorderRadius.only(
                                   topLeft: const Radius.circular(16),
                                   topRight: const Radius.circular(16),
-                                  bottomLeft:
-                                  Radius.circular(isMe ? 16 : 0),
-                                  bottomRight:
-                                  Radius.circular(isMe ? 0 : 16),
+                                  bottomLeft: Radius.circular(isMe ? 16 : 0),
+                                  bottomRight: Radius.circular(isMe ? 0 : 16),
                                 ),
                               ),
                               child: innerContent,

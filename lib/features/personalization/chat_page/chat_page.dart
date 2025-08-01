@@ -58,10 +58,6 @@ class _ChatPageState extends State<ChatPage> {
     });
   }
 
-  void handleForward(Map<String, dynamic> message) {
-    debugPrint('📤 Forward message: ${message['content']}');
-  }
-
   void deleteMessageForMe(Map<String, dynamic> message) {
     debugPrint('🗑 Delete for me: ${message['content']}');
   }
@@ -69,6 +65,101 @@ class _ChatPageState extends State<ChatPage> {
   void unsendMessage(Map<String, dynamic> message) {
     debugPrint('❌ Unsend message: ${message['content']}');
   }
+
+  void handleForward(Map<String, dynamic> message) async {
+    final selectedUserId = await showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: Colors.black,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      isScrollControlled: true,
+      builder: (context) {
+        return SizedBox(
+          height: MediaQuery.of(context).size.height * 0.75,
+          child: FutureBuilder<QuerySnapshot>(
+            future: FirebaseFirestore.instance.collection('users').get(),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
+
+              final users = snapshot.data?.docs ?? [];
+
+              return ListView.builder(
+                itemCount: users.length,
+                itemBuilder: (context, index) {
+                  final user = users[index].data() as Map<String, dynamic>;
+                  final userId = users[index].id;
+
+                  // Skip current user
+                  if (userId == FirebaseAuth.instance.currentUser?.uid) {
+                    return const SizedBox.shrink();
+                  }
+
+                  return ListTile(
+                    onTap: () => Navigator.pop(context, userId),
+                    leading: CircleAvatar(
+                      backgroundImage: NetworkImage(user['photoUrl'] ?? ''),
+                    ),
+                    title: Text(user['name'] ?? 'No Name',
+                        style: const TextStyle(color: Colors.white)),
+
+                  );
+                },
+              );
+            },
+          ),
+        );
+      },
+    );
+
+    if (selectedUserId != null) {
+      sendMessage(
+        receiverId: selectedUserId,
+        type: message['type'],
+        content: message['content'],
+        forwarded: true,
+      );
+    }
+  }
+
+  void sendMessage({
+    required String receiverId,
+    required String type,
+    required String content,
+    bool forwarded = false,
+  }) async {
+    final currentUser = FirebaseAuth.instance.currentUser!;
+    final forwardChatId = appController.getChatId(currentUser.uid, receiverId);
+    final messageId = FirebaseFirestore.instance.collection('temp').doc().id;
+
+    final messageData = {
+      'id': messageId,
+      'senderId': currentUser.uid,
+      'receiverId': receiverId,
+      'timestamp': FieldValue.serverTimestamp(),
+      'type': type,
+      'content': content,
+
+      'forwarded': forwarded,
+
+      'reaction': '',
+
+      'isRead': false,
+
+    };
+
+
+    await FirebaseFirestore.instance
+        .collection('chats')
+        .doc(forwardChatId)
+        .collection('messages')
+        .doc(messageId)
+        .set(messageData);
+  }
+
+
 
   @override
   Widget build(BuildContext context) {
@@ -171,6 +262,7 @@ class _ChatPageState extends State<ChatPage> {
                               };
                             });
                           },
+
                         ),
                         SeenLabel(
                           isLastMessage: isLastMessage,
