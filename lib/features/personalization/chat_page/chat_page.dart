@@ -118,6 +118,9 @@ class _ChatPageState extends State<ChatPage> {
                     final msg = messages[index];
                     final data = msg.data() as Map<String, dynamic>;
 
+                    // ✅ Inject Firestore document ID into message data
+                    data['id'] = msg.id;
+
                     // 👇 Skip message if 'type' or 'content' is missing or null
                     if (data['type'] == null || data['content'] == null) {
                       return const SizedBox.shrink(); // skip this item
@@ -139,6 +142,14 @@ class _ChatPageState extends State<ChatPage> {
                           message: data,
                           isMe: isMe,
                           senderImageUrl: senderImageUrl,
+                          onReact: (emoji) async {
+                            await FirebaseFirestore.instance
+                                .collection('chats')
+                                .doc(chatId)
+                                .collection('messages')
+                                .doc(data['id']) // ✅ Use injected ID
+                                .update({'reaction': emoji});
+                          },
                         ),
                         SeenLabel(
                           isLastMessage: isLastMessage,
@@ -147,11 +158,10 @@ class _ChatPageState extends State<ChatPage> {
                       ],
                     );
                   },
-
-
                 );
               },
             ),
+
           ),
           ChatInputBar(receiverId: widget.receiverId),
         ],

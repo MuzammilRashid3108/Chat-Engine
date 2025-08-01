@@ -23,6 +23,7 @@ class ChatEngine extends StatefulWidget {
 }
 
 class _ChatEngineState extends State<ChatEngine> {
+  final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
   @override
   void initState() {
     super.initState();
@@ -54,6 +55,7 @@ class _ChatEngineState extends State<ChatEngine> {
     final User? currentUser = FirebaseAuth.instance.currentUser;
 
     return GetMaterialApp(
+      navigatorKey: navigatorKey,
       debugShowCheckedModeBanner: false,
       themeMode: ThemeMode.system,
       theme: AppTheme.darkTheme,
