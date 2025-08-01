@@ -11,6 +11,8 @@ class MessageBubble extends StatelessWidget {
   final void Function(Map<String, dynamic> message)? onForward;
   final void Function(Map<String, dynamic> message)? onDeleteForMe;
   final void Function(Map<String, dynamic> message)? onUnsend;
+  final Function(Map<String, dynamic> messageData) onSwipeToReply;
+
 
   const MessageBubble({
     super.key,
@@ -21,7 +23,7 @@ class MessageBubble extends StatelessWidget {
     this.onReply,
     this.onForward,
     this.onDeleteForMe,
-    this.onUnsend,
+    this.onUnsend, required this.onSwipeToReply,
   });
 
   void _launchURL(String url) async {
@@ -40,59 +42,60 @@ class MessageBubble extends StatelessWidget {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
-      builder: (context) => Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const SizedBox(height: 8),
-          SizedBox(
-            height: 60,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: ['👍', '❤️', '😂', '😮', '😢', '👏'].map((emoji) {
-                return GestureDetector(
-                  onTap: () {
-                    Navigator.pop(context);
-                    onReact?.call(emoji);
-                  },
-                  child: Text(emoji, style: const TextStyle(fontSize: 26)),
+      builder: (context) =>
+          Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 8),
+              SizedBox(
+                height: 60,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: ['👍', '❤️', '😂', '😮', '😢', '👏'].map((emoji) {
+                    return GestureDetector(
+                      onTap: () {
+                        Navigator.pop(context);
+                        onReact?.call(emoji);
+                      },
+                      child: Text(emoji, style: const TextStyle(fontSize: 26)),
+                    );
+                  }).toList(),
+                ),
+              ),
+              const Divider(color: Colors.white24),
+              _buildOption(context, Icons.reply, 'Reply', () {
+                Navigator.pop(context);
+                onReply?.call(message);
+              }),
+              _buildOption(context, Icons.forward, 'Forward', () {
+                Navigator.pop(context);
+                onForward?.call(message);
+              }),
+              _buildOption(context, Icons.copy, 'Copy', () {
+                Navigator.pop(context);
+                Clipboard.setData(
+                  ClipboardData(text: message['content'] ?? ''),
                 );
-              }).toList(),
-            ),
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Message copied')),
+                );
+              }),
+              _buildOption(context, Icons.translate, 'Translate', () {
+                Navigator.pop(context);
+                _translateMessage(context);
+              }),
+              _buildOption(context, Icons.delete_outline, 'Delete for you', () {
+                Navigator.pop(context);
+                onDeleteForMe?.call(message);
+              }),
+              if (isMe)
+                _buildOption(context, Icons.block, 'Unsend', () {
+                  Navigator.pop(context);
+                  onUnsend?.call(message);
+                }),
+              const SizedBox(height: 8),
+            ],
           ),
-          const Divider(color: Colors.white24),
-          _buildOption(context, Icons.reply, 'Reply', () {
-            Navigator.pop(context);
-            onReply?.call(message);
-          }),
-          _buildOption(context, Icons.forward, 'Forward', () {
-            Navigator.pop(context);
-            onForward?.call(message);
-          }),
-          _buildOption(context, Icons.copy, 'Copy', () {
-            Navigator.pop(context);
-            Clipboard.setData(
-              ClipboardData(text: message['content'] ?? ''),
-            );
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Message copied')),
-            );
-          }),
-          _buildOption(context, Icons.translate, 'Translate', () {
-            Navigator.pop(context);
-            _translateMessage(context);
-          }),
-          _buildOption(context, Icons.delete_outline, 'Delete for you', () {
-            Navigator.pop(context);
-            onDeleteForMe?.call(message);
-          }),
-          if (isMe)
-            _buildOption(context, Icons.block, 'Unsend', () {
-              Navigator.pop(context);
-              onUnsend?.call(message);
-            }),
-          const SizedBox(height: 8),
-        ],
-      ),
     );
   }
 
@@ -100,15 +103,19 @@ class MessageBubble extends StatelessWidget {
     final translated = '📘 Translated: This is sample translated text';
     showDialog(
       context: context,
-      builder: (_) => AlertDialog(
-        backgroundColor: Colors.grey.shade900,
-        title: const Text('Translated', style: TextStyle(color: Colors.white)),
-        content: Text(translated, style: const TextStyle(color: Colors.white70)),
-      ),
+      builder: (_) =>
+          AlertDialog(
+            backgroundColor: Colors.grey.shade900,
+            title: const Text(
+                'Translated', style: TextStyle(color: Colors.white)),
+            content: Text(
+                translated, style: const TextStyle(color: Colors.white70)),
+          ),
     );
   }
 
-  Widget _buildOption(BuildContext context, IconData icon, String label, VoidCallback onTap) {
+  Widget _buildOption(BuildContext context, IconData icon, String label,
+      VoidCallback onTap) {
     return ListTile(
       leading: Icon(icon, color: Colors.white),
       title: Text(label, style: const TextStyle(color: Colors.white)),
@@ -167,98 +174,107 @@ class MessageBubble extends StatelessWidget {
       );
     }
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 10),
-      child: Align(
-        alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.end,
-          mainAxisAlignment:
-          isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
-          children: [
-            if (!isMe)
-              CircleAvatar(
-                radius: 15,
-                backgroundImage: senderImageUrl.isNotEmpty
-                    ? NetworkImage(senderImageUrl)
-                    : const AssetImage('assets/images/no_profile.webp')
-                as ImageProvider,
-              ),
-            if (!isMe) const SizedBox(width: 8),
-            Flexible(
-              child: GestureDetector(
-                onLongPress: () => _showMessageOptions(context),
-                child: Stack(
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 20),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          if (repliedTo != null)
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 10, vertical: 6),
-                              margin: const EdgeInsets.only(bottom: 4),
-                              decoration: BoxDecoration(
-                                color: Colors.grey.shade700,
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Text(
-                                repliedTo['content'] ?? '',
-                                style: const TextStyle(
-                                  color: Colors.white70,
-                                  fontSize: 12,
-                                  fontStyle: FontStyle.italic,
+    return GestureDetector(
+      onHorizontalDragEnd: (details) {
+        if (isMe && details.primaryVelocity! < -200) {
+          onSwipeToReply(message);
+        } else if (!isMe && details.primaryVelocity! > 200) {
+          onSwipeToReply(message);
+        }
+      },
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 10),
+        child: Align(
+          alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            mainAxisAlignment:
+            isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
+            children: [
+              if (!isMe)
+                CircleAvatar(
+                  radius: 15,
+                  backgroundImage: senderImageUrl.isNotEmpty
+                      ? NetworkImage(senderImageUrl)
+                      : const AssetImage('assets/images/no_profile.webp')
+                  as ImageProvider,
+                ),
+              if (!isMe) const SizedBox(width: 8),
+              Flexible(
+                child: GestureDetector(
+                  onLongPress: () => _showMessageOptions(context),
+                  child: Stack(
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 20),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            if (repliedTo != null)
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 10, vertical: 6),
+                                margin: const EdgeInsets.only(bottom: 4),
+                                decoration: BoxDecoration(
+                                  color: Colors.grey.shade700,
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Text(
+                                  repliedTo['content'] ?? '',
+                                  style: const TextStyle(
+                                    color: Colors.white70,
+                                    fontSize: 12,
+                                    fontStyle: FontStyle.italic,
+                                  ),
                                 ),
                               ),
-                            ),
-                          type == 'image'
-                              ? innerContent
-                              : Container(
-                            padding: const EdgeInsets.symmetric(
-                                vertical: 10, horizontal: 14),
-                            decoration: BoxDecoration(
-                              color: isMe
-                                  ? Colors.purple
-                                  : Colors.white12,
-                              borderRadius: BorderRadius.only(
-                                topLeft: const Radius.circular(16),
-                                topRight: const Radius.circular(16),
-                                bottomLeft:
-                                Radius.circular(isMe ? 16 : 0),
-                                bottomRight:
-                                Radius.circular(isMe ? 0 : 16),
+                            type == 'image'
+                                ? innerContent
+                                : Container(
+                              padding: const EdgeInsets.symmetric(
+                                  vertical: 10, horizontal: 14),
+                              decoration: BoxDecoration(
+                                color: isMe
+                                    ? Colors.purple
+                                    : Colors.white12,
+                                borderRadius: BorderRadius.only(
+                                  topLeft: const Radius.circular(16),
+                                  topRight: const Radius.circular(16),
+                                  bottomLeft:
+                                  Radius.circular(isMe ? 16 : 0),
+                                  bottomRight:
+                                  Radius.circular(isMe ? 0 : 16),
+                                ),
                               ),
+                              child: innerContent,
                             ),
-                            child: innerContent,
-                          ),
-                        ],
-                      ),
-                    ),
-                    if (reaction != null && reaction.isNotEmpty)
-                      Positioned(
-                        bottom: 2,
-                        left: 6,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 6, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: Colors.grey.shade900,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Text(
-                            reaction,
-                            style: const TextStyle(fontSize: 14),
-                          ),
+                          ],
                         ),
                       ),
-                  ],
+                      if (reaction != null && reaction.isNotEmpty)
+                        Positioned(
+                          bottom: 2,
+                          left: 6,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: Colors.grey.shade900,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Text(
+                              reaction,
+                              style: const TextStyle(fontSize: 14),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
                 ),
               ),
-            ),
-            if (isMe) const SizedBox(width: 6),
-          ],
+              if (isMe) const SizedBox(width: 6),
+            ],
+          ),
         ),
       ),
     );

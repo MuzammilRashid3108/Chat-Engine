@@ -162,6 +162,15 @@ class _ChatPageState extends State<ChatPage> {
                           onForward: (msg) => handleForward(msg),
                           onDeleteForMe: (msg) => deleteMessageForMe(msg),
                           onUnsend: (msg) => unsendMessage(msg),
+                          onSwipeToReply: (message) {
+                            setState(() {
+                              replyMessage = {
+                                'senderId': message['senderId'],
+                                'content': message['content'],
+                                'type': message['type'],
+                              };
+                            });
+                          },
                         ),
                         SeenLabel(
                           isLastMessage: isLastMessage,
