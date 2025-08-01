@@ -59,8 +59,18 @@ class _ChatPageState extends State<ChatPage> {
   }
 
   void deleteMessageForMe(Map<String, dynamic> message) {
-    debugPrint('🗑 Delete for me: ${message['content']}');
+    final currentUserId = FirebaseAuth.instance.currentUser!.uid;
+
+    FirebaseFirestore.instance
+        .collection('chats')
+        .doc(chatId)
+        .collection('messages')
+        .doc(message['id'])
+        .update({
+      'deletedFor': FieldValue.arrayUnion([currentUserId])
+    });
   }
+
 
   void unsendMessage(Map<String, dynamic> message) {
     debugPrint('❌ Unsend message: ${message['content']}');
@@ -204,6 +214,8 @@ class _ChatPageState extends State<ChatPage> {
                   return const Center(child: CircularProgressIndicator());
                 }
 
+
+
                 final messages = snapshot.data!.docs;
                 final currentUserId = FirebaseAuth.instance.currentUser!.uid;
 
@@ -222,6 +234,12 @@ class _ChatPageState extends State<ChatPage> {
                     final data = msg.data() as Map<String, dynamic>;
 
                     data['id'] = msg.id;
+
+                    final deletedFor = List<String>.from(data['deletedFor'] ?? []);
+                    if (deletedFor.contains(currentUserId)) {
+                      return const SizedBox.shrink();
+                    }
+
                     if (data['type'] == null || data['content'] == null) {
                       return const SizedBox.shrink();
                     }
