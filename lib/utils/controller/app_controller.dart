@@ -95,6 +95,7 @@ class AppController extends GetxController {
     required String receiverId,
     required String messageText,
     String type = 'text',
+    Map<String, dynamic>? replyTo, // ✅ optional reply object
   }) async {
     final senderId = FirebaseAuth.instance.currentUser!.uid;
     final chatId = getChatId(senderId, receiverId);
@@ -106,16 +107,25 @@ class AppController extends GetxController {
       'receiverId': receiverId,
       'content': messageText,
       'timestamp': timestamp,
-      'photoUrl': photoUrl, // Optional, remove if not needed
+      'photoUrl': photoUrl,
       'type': type,
       'isRead': false,
+      if (replyTo != null)
+        'replyTo': {
+          'senderId': replyTo['senderId'] ?? '',
+          'content': replyTo['content'] ?? '',
+          'senderName': replyTo['senderName'] ?? '', // ✅ Add this lines
+          'type': replyTo['type'] ?? 'text',
+        },
     };
 
-    await FirebaseFirestore.instance
+    final messageRef = FirebaseFirestore.instance
         .collection('chats')
         .doc(chatId)
         .collection('messages')
-        .add(message);
+        .doc();
+
+    await messageRef.set(message);
 
     await FirebaseFirestore.instance.collection('chats').doc(chatId).set({
       'lastMessage': message,
@@ -124,6 +134,7 @@ class AppController extends GetxController {
       'receiverId': receiverId,
     }, SetOptions(merge: true));
   }
+
 
 
 

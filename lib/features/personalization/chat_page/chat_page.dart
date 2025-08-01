@@ -24,6 +24,7 @@ class _ChatPageState extends State<ChatPage> {
   final ScrollController _scrollController = ScrollController();
   late String chatId;
   DocumentSnapshot? receiverData;
+  Map<String, dynamic>? replyMessage;
 
   @override
   void initState() {
@@ -57,12 +58,23 @@ class _ChatPageState extends State<ChatPage> {
     });
   }
 
+  void handleForward(Map<String, dynamic> message) {
+    debugPrint('📤 Forward message: ${message['content']}');
+  }
+
+  void deleteMessageForMe(Map<String, dynamic> message) {
+    debugPrint('🗑 Delete for me: ${message['content']}');
+  }
+
+  void unsendMessage(Map<String, dynamic> message) {
+    debugPrint('❌ Unsend message: ${message['content']}');
+  }
+
   @override
   Widget build(BuildContext context) {
     final receiverName = receiverData?.get('name') ?? 'Loading...';
     final photoUrl = receiverData?.get('photoUrl');
     final lastSeen = receiverData?.get('lastSeen');
-
 
     return Scaffold(
       backgroundColor: Colors.black,
@@ -118,18 +130,14 @@ class _ChatPageState extends State<ChatPage> {
                     final msg = messages[index];
                     final data = msg.data() as Map<String, dynamic>;
 
-                    // ✅ Inject Firestore document ID into message data
                     data['id'] = msg.id;
-
-                    // 👇 Skip message if 'type' or 'content' is missing or null
                     if (data['type'] == null || data['content'] == null) {
-                      return const SizedBox.shrink(); // skip this item
+                      return const SizedBox.shrink();
                     }
 
                     final timestamp = data['timestamp'] as Timestamp?;
                     final isMe = data['senderId'] == currentUserId;
                     final isLastMessage = index == messages.length - 1 && isMe;
-
                     final senderImageUrl = !isMe ? (receiverData?.get('photoUrl') ?? '') : '';
 
                     return Column(
@@ -147,9 +155,13 @@ class _ChatPageState extends State<ChatPage> {
                                 .collection('chats')
                                 .doc(chatId)
                                 .collection('messages')
-                                .doc(data['id']) // ✅ Use injected ID
+                                .doc(data['id'])
                                 .update({'reaction': emoji});
                           },
+                          onReply: (msg) => setState(() => replyMessage = msg),
+                          onForward: (msg) => handleForward(msg),
+                          onDeleteForMe: (msg) => deleteMessageForMe(msg),
+                          onUnsend: (msg) => unsendMessage(msg),
                         ),
                         SeenLabel(
                           isLastMessage: isLastMessage,
@@ -161,9 +173,14 @@ class _ChatPageState extends State<ChatPage> {
                 );
               },
             ),
-
           ),
-          ChatInputBar(receiverId: widget.receiverId),
+          ChatInputBar(
+            receiverId: widget.receiverId,
+            replyMessage: replyMessage,
+            onClearReply: () {
+              setState(() => replyMessage = null);
+            },
+          ),
         ],
       ),
     );

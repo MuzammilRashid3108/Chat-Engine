@@ -2,7 +2,9 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:chat_engine/utils/controller/app_controller.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
@@ -11,8 +13,10 @@ import 'package:path/path.dart' as path;
 
 class ChatInputBar extends StatefulWidget {
   final String receiverId;
+  final Map<String, dynamic>? replyMessage;
+  final VoidCallback? onClearReply;
 
-  const ChatInputBar({super.key, required this.receiverId});
+  const ChatInputBar({super.key, required this.receiverId, this.replyMessage, this.onClearReply});
 
   @override
   State<ChatInputBar> createState() => _ChatInputBarState();
@@ -31,7 +35,8 @@ class _ChatInputBarState extends State<ChatInputBar> {
 
   Future<void> _uploadFile(File file, {bool isImage = false}) async {
     try {
-      final uri = Uri.parse('https://api.cloudinary.com/v1_1/$cloudName/image/upload');
+      final uri = Uri.parse(
+          'https://api.cloudinary.com/v1_1/$cloudName/image/upload');
 
       var request = http.MultipartRequest('POST', uri)
         ..fields['upload_preset'] = uploadPreset
@@ -66,13 +71,21 @@ class _ChatInputBarState extends State<ChatInputBar> {
     appController.sendMessage(
       receiverId: widget.receiverId,
       messageText: text,
+      replyTo: widget.replyMessage, // ✅ Include reply message
     );
 
     _controller.clear();
+
+    // ✅ Clear reply UI
+    if (widget.onClearReply != null) {
+      widget.onClearReply!();
+    }
   }
 
+
   void _pickFile() async {
-    FilePickerResult? result = await FilePicker.platform.pickFiles(type: FileType.any);
+    FilePickerResult? result = await FilePicker.platform.pickFiles(
+        type: FileType.any);
     if (result != null && result.files.single.path != null) {
       File file = File(result.files.single.path!);
       await _uploadFile(file);
@@ -81,7 +94,8 @@ class _ChatInputBarState extends State<ChatInputBar> {
 
   void _pickImage() async {
     final ImagePicker picker = ImagePicker();
-    final XFile? pickedImage = await picker.pickImage(source: ImageSource.gallery);
+    final XFile? pickedImage = await picker.pickImage(
+        source: ImageSource.gallery);
 
     if (pickedImage == null) return;
 
@@ -127,6 +141,33 @@ class _ChatInputBarState extends State<ChatInputBar> {
     }
   }
 
+  String? _replyingToName;
+
+  @override
+  void didUpdateWidget(covariant ChatInputBar oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.replyMessage != null) {
+      _loadReplyUserName(widget.replyMessage!['senderId']);
+    }
+  }
+
+  Future<void> _loadReplyUserName(String senderId) async {
+    if (senderId == FirebaseAuth.instance.currentUser!.uid) {
+      setState(() {
+        _replyingToName = 'yourself';
+      });
+      return;
+    }
+
+    final userDoc = await FirebaseFirestore.instance.collection('users').doc(senderId).get();
+    if (userDoc.exists) {
+      setState(() {
+        _replyingToName = userDoc.data()?['name'] ?? 'Unknown';
+      });
+    }
+  }
+
+
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -170,6 +211,50 @@ class _ChatInputBarState extends State<ChatInputBar> {
               ),
             ],
           ),
+
+        // ✅ REPLY MESSAGE UI START
+        if (widget.replyMessage != null)
+          Container(
+            margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Colors.transparent,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Replying to ${_replyingToName ?? '...'}',
+                        style: const TextStyle(
+                          color: Colors.grey,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        widget.replyMessage!['content'] ?? '',
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(color: Colors.white),
+                      ),
+                    ],
+                  ),
+                ),
+                IconButton(
+                  onPressed: widget.onClearReply,
+                  icon: const Icon(Icons.close, color: Colors.white),
+                )
+              ],
+            ),
+          ),
+        // ✅ REPLY MESSAGE UI END
+
+        // ✅ Existing Input Bar Below (unchanged)
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
           color: Colors.black,
@@ -194,12 +279,12 @@ class _ChatInputBarState extends State<ChatInputBar> {
                         icon: const Icon(Icons.camera_alt, color: Colors.grey),
                         onPressed: _openCamera,
                       ),
-
                       suffixIcon: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           IconButton(
-                            icon: const Icon(Icons.attach_file, color: Colors.grey),
+                            icon: const Icon(
+                                Icons.attach_file, color: Colors.grey),
                             onPressed: _pickFile,
                           ),
                           IconButton(
@@ -216,7 +301,7 @@ class _ChatInputBarState extends State<ChatInputBar> {
               GestureDetector(
                 onTap: _sendMessage,
                 child: const CircleAvatar(
-                  backgroundColor: Color(0xFF0084FF),
+                  backgroundColor: Colors.purple,
                   child: Icon(Icons.send, color: Colors.white),
                 ),
               ),
