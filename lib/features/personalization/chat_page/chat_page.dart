@@ -72,9 +72,55 @@ class _ChatPageState extends State<ChatPage> {
   }
 
 
-  void unsendMessage(Map<String, dynamic> message) {
-    debugPrint('❌ Unsend message: ${message['content']}');
+  void unsendMessage(Map<String, dynamic> message) async {
+    final msgId = message['id'];
+    final msgRef = FirebaseFirestore.instance
+        .collection('chats')
+        .doc(chatId)
+        .collection('messages')
+        .doc(msgId);
+
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: Colors.black,
+        title: const Text(
+          "Unsend Message",
+          style: TextStyle(color: Colors.white),
+        ),
+        content: const Text(
+          "This will remove the message for everyone. Continue?",
+          style: TextStyle(color: Colors.white70),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text("Cancel"),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text("Unsend", style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      try {
+        await msgRef.update({
+          'content': 'You unsent this message',
+          'type': 'unsent',
+          'reaction': null,
+          'isRead': true,
+        });
+        debugPrint('✅ Message marked as unsent');
+      } catch (e) {
+        debugPrint('❌ Error unsending message: $e');
+      }
+    }
   }
+
+
 
   void handleForward(Map<String, dynamic> message) async {
     final selectedUserId = await showModalBottomSheet<String>(

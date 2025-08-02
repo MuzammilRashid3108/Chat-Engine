@@ -39,11 +39,14 @@ class MessageBubble extends StatelessWidget {
     const translated = '📘 Translated: This is sample translated text';
     showDialog(
       context: context,
-      builder: (_) => AlertDialog(
-        backgroundColor: Colors.grey.shade900,
-        title: const Text('Translated', style: TextStyle(color: Colors.white)),
-        content: const Text(translated, style: TextStyle(color: Colors.white70)),
-      ),
+      builder: (_) =>
+          AlertDialog(
+            backgroundColor: Colors.grey.shade900,
+            title: const Text(
+                'Translated', style: TextStyle(color: Colors.white)),
+            content: const Text(
+                translated, style: TextStyle(color: Colors.white70)),
+          ),
     );
   }
 
@@ -54,61 +57,64 @@ class MessageBubble extends StatelessWidget {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
-      builder: (context) => Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const SizedBox(height: 8),
-          SizedBox(
-            height: 60,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: ['👍', '❤️', '😂', '😮', '😢', '👏'].map((emoji) {
-                return GestureDetector(
-                  onTap: () {
-                    Navigator.pop(context);
-                    onReact?.call(emoji);
-                  },
-                  child: Text(emoji, style: const TextStyle(fontSize: 26)),
+      builder: (context) =>
+          Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 8),
+              SizedBox(
+                height: 60,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: ['👍', '❤️', '😂', '😮', '😢', '👏'].map((emoji) {
+                    return GestureDetector(
+                      onTap: () {
+                        Navigator.pop(context);
+                        onReact?.call(emoji);
+                      },
+                      child: Text(emoji, style: const TextStyle(fontSize: 26)),
+                    );
+                  }).toList(),
+                ),
+              ),
+              const Divider(color: Colors.white24),
+              _buildOption(context, Icons.reply, 'Reply', () {
+                Navigator.pop(context);
+                onReply?.call(message);
+              }),
+              _buildOption(context, Icons.forward, 'Forward', () {
+                Navigator.pop(context);
+                onForward?.call(message); // 👈 Forward handled by parent
+              }),
+              _buildOption(context, Icons.copy, 'Copy', () {
+                Navigator.pop(context);
+                Clipboard.setData(
+                    ClipboardData(text: message['content'] ?? ''));
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Message copied')),
                 );
-              }).toList(),
-            ),
+              }),
+              _buildOption(context, Icons.translate, 'Translate', () {
+                Navigator.pop(context);
+                _translateMessage(context);
+              }),
+              _buildOption(context, Icons.delete_outline, 'Delete for you', () {
+                Navigator.pop(context);
+                onDeleteForMe?.call(message);
+              }),
+              if (isMe)
+                _buildOption(context, Icons.block, 'Unsend', () {
+                  Navigator.pop(context);
+                  onUnsend?.call(message);
+                }),
+              const SizedBox(height: 8),
+            ],
           ),
-          const Divider(color: Colors.white24),
-          _buildOption(context, Icons.reply, 'Reply', () {
-            Navigator.pop(context);
-            onReply?.call(message);
-          }),
-          _buildOption(context, Icons.forward, 'Forward', () {
-            Navigator.pop(context);
-            onForward?.call(message); // 👈 Forward handled by parent
-          }),
-          _buildOption(context, Icons.copy, 'Copy', () {
-            Navigator.pop(context);
-            Clipboard.setData(ClipboardData(text: message['content'] ?? ''));
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Message copied')),
-            );
-          }),
-          _buildOption(context, Icons.translate, 'Translate', () {
-            Navigator.pop(context);
-            _translateMessage(context);
-          }),
-          _buildOption(context, Icons.delete_outline, 'Delete for you', () {
-            Navigator.pop(context);
-            onDeleteForMe?.call(message);
-          }),
-          if (isMe)
-            _buildOption(context, Icons.block, 'Unsend', () {
-              Navigator.pop(context);
-              onUnsend?.call(message);
-            }),
-          const SizedBox(height: 8),
-        ],
-      ),
     );
   }
 
-  Widget _buildOption(BuildContext context, IconData icon, String label, VoidCallback onTap) {
+  Widget _buildOption(BuildContext context, IconData icon, String label,
+      VoidCallback onTap) {
     return ListTile(
       leading: Icon(icon, color: Colors.white),
       title: Text(label, style: const TextStyle(color: Colors.white)),
@@ -124,6 +130,29 @@ class MessageBubble extends StatelessWidget {
     final repliedTo = message['repliedTo'];
     final isForwarded = message['forwarded'] == true;
 
+    // ✅ Handle unsent messages
+    if (type == 'unsent') {
+      return Align(
+        alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 14),
+          margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 10),
+          decoration: BoxDecoration(
+            color: Colors.grey[900],
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Text(
+            content ?? 'You unsent this message',
+            style: const TextStyle(
+              color: Colors.white54,
+              fontStyle: FontStyle.italic,
+            ),
+          ),
+        ),
+      );
+    }
+
+    // 🟪 Continue normal rendering if not unsent
     Widget innerContent;
 
     if (type == 'image') {
@@ -182,7 +211,8 @@ class MessageBubble extends StatelessWidget {
           alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.end,
-            mainAxisAlignment: isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
+            mainAxisAlignment: isMe ? MainAxisAlignment.end : MainAxisAlignment
+                .start,
             children: [
               if (!isMe)
                 CircleAvatar(
