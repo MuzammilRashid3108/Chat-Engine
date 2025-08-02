@@ -171,12 +171,13 @@ class _ChatPageState extends State<ChatPage> {
     );
 
     if (selectedUserId != null) {
-      sendMessage(
+      appController.sendMessage(
         receiverId: selectedUserId,
+        messageText: message['content'],
         type: message['type'],
-        content: message['content'],
-        forwarded: true,
+        replyTo: null, // or add support for forwarding reply if needed
       );
+
     }
   }
 

@@ -111,7 +111,7 @@ class AppController extends GetxController {
       'type': type,
       'isRead': false,
       if (replyTo != null)
-        'replyTo': {
+        'repliedTo': {
           'senderId': replyTo['senderId'] ?? '',
           'content': replyTo['content'] ?? '',
           'senderName': replyTo['senderName'] ?? '', // ✅ Add this lines

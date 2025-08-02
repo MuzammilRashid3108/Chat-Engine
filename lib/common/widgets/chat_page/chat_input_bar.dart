@@ -236,12 +236,23 @@ class _ChatInputBarState extends State<ChatInputBar> {
                         ),
                       ),
                       const SizedBox(height: 4),
-                      Text(
+                      widget.replyMessage!['type'] == 'image'
+                          ? ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: Image.network(
+                          widget.replyMessage!['content'],
+                          height: 60,
+                          width: 60,
+                          fit: BoxFit.cover,
+                        ),
+                      )
+                          : Text(
                         widget.replyMessage!['content'] ?? '',
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(color: Colors.white),
-                      ),
+                      )
+
                     ],
                   ),
                 ),
