@@ -225,18 +225,19 @@ class MessageBubble extends StatelessWidget {
                           children: [
                             if (replyTo != null)
                               Container(
+
                                 padding: const EdgeInsets.all(8),
                                 margin: const EdgeInsets.only(bottom: 4),
                                 decoration: BoxDecoration(
-                                  color: Colors.grey.shade700,
+                                  color: Colors.transparent,
                                   borderRadius: BorderRadius.circular(8),
                                 ),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.end,
                                   children: [
                                     if (replyTo['type'] == 'image' && replyTo['content'] != null)
                                       ClipRRect(
-                                        borderRadius: BorderRadius.circular(6),
+                                        // borderRadius: BorderRadius.circular(6),
                                         child: Image.network(
                                           replyTo['content'],
                                           width: 100,
@@ -283,19 +284,27 @@ class MessageBubble extends StatelessWidget {
                               ),
                             type == 'image'
                                 ? innerContent
-                                : Container(
-                              padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 14),
-                              decoration: BoxDecoration(
-                                color: isMe ? Colors.purple : Colors.white12,
-                                borderRadius: BorderRadius.only(
-                                  topLeft: const Radius.circular(16),
-                                  topRight: const Radius.circular(16),
-                                  bottomLeft: Radius.circular(isMe ? 16 : 0),
-                                  bottomRight: Radius.circular(isMe ? 0 : 16),
+                                : Row(
+                              mainAxisAlignment: MainAxisAlignment.end,
+                                  children: [
+                                    Container(
+                                                                  padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 14),
+                                                                  decoration: BoxDecoration(
+                                    color: isMe ? Colors.purple : Colors.white12,
+                                    borderRadius: BorderRadius.only(
+                                      topLeft: const Radius.circular(16),
+                                      topRight: const Radius.circular(16),
+                                      bottomLeft: Radius.circular(isMe ? 16 : 0),
+                                      bottomRight: Radius.circular(isMe ? 0 : 16),
+                                    ),
+
+                                                                  ),
+                                                                  child: innerContent,
+                                                                ),
+                                  ],
                                 ),
-                              ),
-                              child: innerContent,
-                            ),
+
+
                           ],
                         ),
                       ),
